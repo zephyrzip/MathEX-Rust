@@ -1,0 +1,10 @@
+[package]
+name = "mathex"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "mathex"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
