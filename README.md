@@ -1,2 +1,3 @@
 # MathEX-Rust
-An embedded mathematical expression evaluator in Rust (Rewrite of MathEX by jserv)
+
+An embedded mathematical expression evaluator written in Rust (a rewrite of MathEX by jserv).
