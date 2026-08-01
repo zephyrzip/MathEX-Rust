@@ -81,12 +81,12 @@ impl Evaluator {
                     BinaryOp::Rem => Ok(l % r),
                     BinaryOp::Pow => Ok(l.powf(r)),
                     
-                    // Bitwise (Requires casting f32 -> i32 -> f32)
-                    BinaryOp::BitAnd => Ok((l as i32) & (r as i32) as f32),
-                    BinaryOp::BitOr  => Ok((l as i32) | (r as i32) as f32),
-                    BinaryOp::BitXor => Ok((l as i32) ^ (r as i32) as f32),
-                    BinaryOp::Shl    => Ok((l as i32) << (r as i32) as f32),
-                    BinaryOp::Shr    => Ok((l as i32) >> (r as i32) as f32),
+                    // Notice the extra outer parentheses wrapping the whole operation!
+                    BinaryOp::BitAnd => Ok(((l as i32) & (r as i32)) as f32),
+                    BinaryOp::BitOr  => Ok(((l as i32) | (r as i32)) as f32),
+                    BinaryOp::BitXor => Ok(((l as i32) ^ (r as i32)) as f32),
+                    BinaryOp::Shl    => Ok(((l as i32) << (r as i32)) as f32),
+                    BinaryOp::Shr    => Ok(((l as i32) >> (r as i32)) as f32),
 
                     // Logical & Relational (1.0 = True, 0.0 = False)
                     BinaryOp::Eq  => Ok(if l == r { 1.0 } else { 0.0 }),
