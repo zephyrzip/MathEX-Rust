@@ -295,6 +295,12 @@ impl Parser {
     // --- The Bottom of the Chain (Numbers, Variables, Functions, Grouping) ---
     
     fn primary(&mut self) -> Result<Expr, String> {
+        // --- 1. ADD THIS SAFETY CHECK ---
+        if self.is_at_end() {
+            return Err("Unexpected end of expression. Expected a number or variable.".to_string());
+        }
+        // --------------------------------
+
         let token = self.advance().clone();
 
         match token {
