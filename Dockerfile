@@ -26,9 +26,11 @@ COPY --from=builder /app/target/release/libmathex.a /app/
 # Copy the original unmodified C test suite
 COPY tests/original/ /app/tests/original/
 
-# Compile the C test runner, linking it to your Rust static library.
+# Compile the C test runners, linking them to your Rust static library.
 # We include -lm (Math), -lpthread, and -ldl which Rust requires on Linux.
 RUN gcc tests/original/test-unit.c -I tests/original -L. -lmathex -lpthread -ldl -lm -o test-unit
+RUN gcc tests/original/test-simple.c -I tests/original -L. -lmathex -lpthread -ldl -lm -o test-simple
+RUN gcc tests/original/test-bench.c -I tests/original -L. -lmathex -lpthread -ldl -lm -o test-bench
 
-# When the container runs, execute the tests!
-CMD ["./test-unit"]
+# When the container runs, execute all tests sequentially!
+CMD ["sh", "-c", "./test-unit && echo '\n--- test-simple ---\n' && ./test-simple && echo '\n--- test-bench ---\n' && ./test-bench"]
