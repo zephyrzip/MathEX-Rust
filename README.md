@@ -178,6 +178,18 @@ Additional benchmark methodology and raw benchmark data are available in the **`
 
 ---
 
+##  Performance & Safety Validation
+
+* **Fuzzing & Memory Safety:** During the differential fuzzing setup, modern GCC immediately flagged `-Wformat-truncation` warnings in the legacy C codebase regarding unsafe buffer sizes. Our Rust port fundamentally eliminates these classes of bugs by relying on safe string formatting (`format!()`) and memory-safe abstractions, compiling completely silently.
+
+##  Bonus: Upstream Bug Discovered
+
+By running a 60-second differential fuzzer (`libFuzzer` + `AddressSanitizer`) against both engines, we discovered a latent memory vulnerability (Out-Of-Bounds Read / SEGV) in the original upstream C repository when handling empty strings or specific control characters.
+
+Because our Rust engine relies on safe Enums and strict bounds checking, it gracefully evaluates these edge cases as `NaN` without crashing.
+
+* **Upstream Issue Filed:** [[Issue](https://github.com/jserv/MathEX/issues/1)]
+---
 ##  License
 
 Code is distributed under MIT X License that can be found in the `LICENSE` file.
