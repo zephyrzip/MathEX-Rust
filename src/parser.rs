@@ -11,15 +11,9 @@ pub struct Parser {
 impl Parser {
     // We update `new` to run the Lexer immediately. If the Lexer fails 
     // (e.g., an invalid character), the Parser immediately returns that Error.
-    pub fn new(input: &str) -> Result<Self, String> {
+    pub fn new(input: &str, known_funcs: std::collections::HashSet<String>) -> Result<Self, String> {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize()?;
-        
-        let mut known_funcs = std::collections::HashSet::new();
-        // Pre-populate with the C test functions and the macro operator
-        for f in ["add", "next", "nop", "print", "$"] {
-            known_funcs.insert(f.to_string());
-        }
 
         Ok(Self {
             tokens,

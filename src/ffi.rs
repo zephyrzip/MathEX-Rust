@@ -8,6 +8,14 @@ use crate::eval::Evaluator;
 
 // --- 1. MEMORY-SAFE C STRUCTS ---
 
+#[repr(C)]
+pub struct expr_func {
+    pub name: *const c_char,
+    pub f: *const c_void,
+    pub cleanup: *const c_void, // We map the pointer, but keep it as opaque void to prevent unsafe execution
+    pub context: *mut c_void,
+}
+
 // We must perfectly mimic the original C memory layout. 
 // We use a 256-byte array to safely simulate C's "Flexible Array Member" for variable names.
 #[repr(C)]
@@ -38,19 +46,36 @@ pub extern "C" fn expr_create(
     s: *const c_char,
     _len: usize,
     vars: *mut expr_var_list,
-    _funcs: *mut c_void, 
+    funcs: *mut expr_func, // <--- UPDATE THIS
 ) -> *mut expr {
-    if s.is_null() {
-        return std::ptr::null_mut();
-    }
+    if s.is_null() { return std::ptr::null_mut(); }
 
-    let c_str = unsafe { CStr::from_ptr(s) };
-    let rust_str = match c_str.to_str() {
-        Ok(valid_str) => valid_str,
-        Err(_) => return std::ptr::null_mut(),
+    let input_str = unsafe {
+        match CStr::from_ptr(s).to_str() {
+            Ok(str) => str,
+            Err(_) => return std::ptr::null_mut(),
+        }
     };
 
-    let mut parser = match Parser::new(rust_str) {
+    // --- DYNAMIC FFI BRIDGE ---
+    let mut known_funcs = std::collections::HashSet::new();
+    known_funcs.insert("$".to_string()); // Always register the macro operator
+
+    // Safely iterate through the C array until we hit a NULL name
+    if !funcs.is_null() {
+        unsafe {
+            let mut current = funcs;
+            while !(*current).name.is_null() {
+                if let Ok(name_str) = CStr::from_ptr((*current).name).to_str() {
+                    known_funcs.insert(name_str.to_string());
+                }
+                current = current.add(1); // Advance pointer to next struct
+            }
+        }
+    }
+
+    // Pass our dynamically loaded functions to the Parser!
+    let mut parser = match Parser::new(input_str, known_funcs) {
         Ok(p) => p,
         Err(_) => return std::ptr::null_mut(),
     };
