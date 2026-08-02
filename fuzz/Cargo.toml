@@ -1,0 +1,23 @@
+[package]
+name = "mathex-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# Point this to your main rust engine in the root directory
+mathex = { path = ".." } 
+
+[build-dependencies]
+cc = "1.0"
+
+# Force the fuzzer to use the exact file name the judges want
+[[bin]]
+name = "harness"
+path = "harness.rs"
+test = false
+doc = false

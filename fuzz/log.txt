@@ -1,0 +1,93 @@
+warning: mathex-fuzz@0.0.0: c_src/expression.c: In function 'c_expr_create':
+warning: mathex-fuzz@0.0.0: c_src/expression.c:643:65: warning: '%d' directive output may be truncated writing between 1 and 10 bytes into a region of size 2 [-Wformat-truncation=]
+warning: mathex-fuzz@0.0.0:   643 |                                 varname, sizeof(varname) - 1, "$%d", (j + 1));
+warning: mathex-fuzz@0.0.0:       |                                                                 ^~
+warning: mathex-fuzz@0.0.0: c_src/expression.c:643:63: note: directive argument in the range [1, 2147483647]
+warning: mathex-fuzz@0.0.0:   643 |                                 varname, sizeof(varname) - 1, "$%d", (j + 1));
+warning: mathex-fuzz@0.0.0:       |                                                               ^~~~~
+warning: mathex-fuzz@0.0.0: c_src/expression.c:642:29: note: 'snprintf' output between 3 and 12 bytes into a destination of size 3
+warning: mathex-fuzz@0.0.0:   642 |                             snprintf(
+warning: mathex-fuzz@0.0.0:       |                             ^~~~~~~~~
+warning: mathex-fuzz@0.0.0:   643 |                                 varname, sizeof(varname) - 1, "$%d", (j + 1));
+warning: mathex-fuzz@0.0.0:       |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Compiling mathex-fuzz v0.0.0 (/app/fuzz)
+    Finished `release` profile [optimized + debuginfo] target(s) in 6.20s
+warning: mathex-fuzz@0.0.0: c_src/expression.c: In function 'c_expr_create':
+warning: mathex-fuzz@0.0.0: c_src/expression.c:643:65: warning: '%d' directive output may be truncated writing between 1 and 10 bytes into a region of size 2 [-Wformat-truncation=]
+warning: mathex-fuzz@0.0.0:   643 |                                 varname, sizeof(varname) - 1, "$%d", (j + 1));
+warning: mathex-fuzz@0.0.0:       |                                                                 ^~
+warning: mathex-fuzz@0.0.0: c_src/expression.c:643:63: note: directive argument in the range [1, 2147483647]
+warning: mathex-fuzz@0.0.0:   643 |                                 varname, sizeof(varname) - 1, "$%d", (j + 1));
+warning: mathex-fuzz@0.0.0:       |                                                               ^~~~~
+warning: mathex-fuzz@0.0.0: c_src/expression.c:642:29: note: 'snprintf' output between 3 and 12 bytes into a destination of size 3
+warning: mathex-fuzz@0.0.0:   642 |                             snprintf(
+warning: mathex-fuzz@0.0.0:       |                             ^~~~~~~~~
+warning: mathex-fuzz@0.0.0:   643 |                                 varname, sizeof(varname) - 1, "$%d", (j + 1));
+warning: mathex-fuzz@0.0.0:       |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.69s
+     Running `fuzz/target/x86_64-unknown-linux-gnu/release/harness -artifact_prefix=/app/fuzz/artifacts/harness/ -max_total_time=60 /app/fuzz/corpus/harness`
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 120803450
+INFO: Loaded 1 modules   (4167 inline 8-bit counters): 4167 [0x63a068b85aa0, 0x63a068b86ae7), 
+INFO: Loaded 1 PC tables (4167 PCs): 4167 [0x63a068b86ae8,0x63a068b96f58), 
+INFO:        0 files found in /app/fuzz/corpus/harness
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 22 ft: 23 corp: 1/1b exec/s: 0 rss: 32Mb
+#4	NEW    cov: 23 ft: 24 corp: 2/2b lim: 4 exec/s: 0 rss: 32Mb L: 1/1 MS: 2 CrossOver-ChangeByte-
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==2351==ERROR: AddressSanitizer: SEGV on unknown address (pc 0x63a068b35041 bp 0x7ffe51458610 sp 0x7ffe51458460 T0)
+==2351==The signal is caused by a READ memory access.
+==2351==Hint: this fault was caused by a dereference of a high value address (see register values below).  Disassemble the provided pc to learn which register was used.
+    #0 0x63a068b35041  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x1cd041) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #1 0x63a068aa71d3  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x13f1d3) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #2 0x63a068aa9395  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x141395) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #3 0x63a068ab1c24  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x149c24) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #4 0x63a068ab2868  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x14a868) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #5 0x63a068ab131d  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x14931d) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #6 0x63a068ab9bd4  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x151bd4) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #7 0x63a068ac082f  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x15882f) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #8 0x63a068ac1a1a  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x159a1a) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #9 0x63a068ac27b7  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x15a7b7) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #10 0x63a068ae8d9e  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x180d9e) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #11 0x63a068ad8b42  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x170b42) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+    #12 0x77fc5b8d5ca7  (/lib/x86_64-linux-gnu/libc.so.6+0x29ca7) (BuildId: c495b62edadd6c356265942ec1282d98058a7b41)
+    #13 0x77fc5b8d5d64  (/lib/x86_64-linux-gnu/libc.so.6+0x29d64) (BuildId: c495b62edadd6c356265942ec1282d98058a7b41)
+    #14 0x63a0689e9b20  (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x81b20) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a)
+
+==2351==Register values:
+rax = 0x00063a068aa71798  rbx = 0x00007ffe51458460  rcx = 0x0031d03459a816c0  rdx = 0x000063a0690cb000  
+rdi = 0x000000000000005a  rsi = 0x0000000000000001  rbp = 0x00007ffe51458610  rsp = 0x00007ffe51458460  
+ r8 = 0x000063a068b3502d   r9 = 0x0000000000000000  r10 = 0x0000000000000001  r11 = 0x0000000000000000  
+r12 = 0x0000000000000000  r13 = 0x0031d0345538bcc0  r14 = 0x0000741c5abe04b0  r15 = 0x000073fc59cd0000  
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/app/fuzz/target/x86_64-unknown-linux-gnu/release/harness+0x1cd041) (BuildId: 5d865f9083f0e6a5c6c5cb0cfc17b643c9f4287a) 
+==2351==ABORTING
+MS: 1 ChangeBit-; base unit: adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
+0x1a,
+\032
+artifact_prefix='/app/fuzz/artifacts/harness/'; Test unit written to /app/fuzz/artifacts/harness/crash-ebdc2288a14298f5f7adf08e069b39fc42cbd909
+Base64: Gg==
+
+────────────────────────────────────────────────────────────────────────────────
+
+Failing input:
+
+	fuzz/artifacts/harness/crash-ebdc2288a14298f5f7adf08e069b39fc42cbd909
+
+Output of `std::fmt::Debug`:
+
+	[26]
+
+Reproduce with:
+
+	cargo fuzz run harness fuzz/artifacts/harness/crash-ebdc2288a14298f5f7adf08e069b39fc42cbd909
+
+Minimize test case with:
+
+	cargo fuzz tmin harness fuzz/artifacts/harness/crash-ebdc2288a14298f5f7adf08e069b39fc42cbd909
+
+────────────────────────────────────────────────────────────────────────────────
+
+Error: Fuzz target exited with exit status: 1
