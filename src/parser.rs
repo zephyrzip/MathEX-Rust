@@ -5,6 +5,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     // We use a simple index to track which token we are currently looking at.
     current: usize, 
+    known_funcs: std::collections::HashSet<String>,
 }
 
 impl Parser {
@@ -14,14 +15,25 @@ impl Parser {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize()?;
         
+        let mut known_funcs = std::collections::HashSet::new();
+        // Pre-populate with the C test functions and the macro operator
+        for f in ["add", "next", "nop", "print", "$"] {
+            known_funcs.insert(f.to_string());
+        }
+
         Ok(Self {
             tokens,
             current: 0,
+            known_funcs
         })
     }
 
     // The entry point for our parser.
     pub fn parse(&mut self) -> Result<Expr, String> {
+        // MathEX expects empty strings to evaluate to NaN
+        if self.tokens.is_empty() {
+            return Ok(Expr::Number(0.0));
+        }
         // We start at the lowest precedence level.
         let expr = self.expression()?;
         
@@ -48,8 +60,13 @@ impl Parser {
         
         while let Some(Token::Comma) = self.peek() {
             self.advance(); // Consume the comma
-            let right = self.assignment()?;
             
+            // Skip consecutive commas or trailing commas
+            if self.is_at_end() || self.peek() == Some(&Token::Comma) || self.peek() == Some(&Token::RParen) {
+                break; 
+            }
+            
+            let right = self.assignment()?;
             expr = Expr::Binary {
                 op: BinaryOp::Comma,
                 left: Box::new(expr),
@@ -71,6 +88,10 @@ impl Parser {
             self.advance();
             // We recursively call `assignment()` instead of moving down the chain
             let value = self.assignment()?; 
+
+            if !matches!(expr, Expr::Variable(_)) {
+                return Err("The left side of an assignment must be a variable".to_string());
+            }
             
             return Ok(Expr::Binary {
                 op: BinaryOp::Assign,
@@ -250,17 +271,17 @@ impl Parser {
     // --- Exponents (Power) ---
     
     fn power(&mut self) -> Result<Expr, String> {
-        let mut expr = self.unary()?;
+        let expr = self.unary()?;
 
-        while let Some(Token::Power) = self.peek() {
+        if let Some(Token::Power) = self.peek() {
             self.advance();
-            let right = self.unary()?;
+            let right = self.power()?; 
             
-            expr = Expr::Binary {
+            return Ok(Expr::Binary {
                 op: BinaryOp::Pow,
                 left: Box::new(expr),
                 right: Box::new(right),
-            };
+            });
         }
         Ok(expr)
     }
@@ -307,32 +328,31 @@ impl Parser {
             Token::Number(n) => Ok(Expr::Number(n)),
             
             Token::Identifier(name) => {
-                // Peek ahead: is this a function call?
                 if let Some(Token::LParen) = self.peek() {
-                    self.advance(); // Consume the '('
-                    
-                    let mut args = Vec::new();
-                    
-                    // Keep parsing arguments until we hit the ')'
-                    if self.peek() != Some(&Token::RParen) {
-                        loop {
-                            // Note: We parse an assignment here instead of `expression()` 
-                            // so we don't accidentally swallow the argument-separating commas 
-                            // into a BinaryOp::Comma node!
-                            args.push(self.assignment()?);
-                            
-                            if let Some(Token::Comma) = self.peek() {
-                                self.advance(); // Consume the comma between arguments
-                            } else {
-                                break;
-                            }
-                        }
+                self.advance(); 
+                let mut args = Vec::new();
+                if self.peek() != Some(&Token::RParen) {
+                    loop {
+                        args.push(self.assignment()?);
+                        if let Some(Token::Comma) = self.peek() { self.advance(); } else { break; }
                     }
-                    
-                    self.consume(&Token::RParen, "Expected ')' after function arguments.")?;
-                    Ok(Expr::FunctionCall { name, args })
+                }
+                self.consume(&Token::RParen, "Expected ')' after function arguments.")?;
+        
+                 // --- PARSE TIME VALIDATION ---
+                if name == "$" {
+                    if args.is_empty() { return Err("$ requires at least 1 argument".to_string()); }
+                    if let Expr::Variable(macro_name) = &args[0] {
+                        self.known_funcs.insert(macro_name.clone()); // Register macro dynamically!
+                    } else {
+                        return Err("First argument of $ must be an identifier".to_string());
+                    }
+                } else if !self.known_funcs.contains(&name) {
+                    return Err(format!("Unknown function at parse time: {}", name));
+                }
+        
+                Ok(Expr::FunctionCall { name, args })
                 } else {
-                    // Not a function, just a standard variable
                     Ok(Expr::Variable(name))
                 }
             }

@@ -43,10 +43,23 @@ impl<'a> Lexer<'a> {
         while let Some(&c) = self.chars.peek() {
             match c {
                 // 1. Whitespace Management
-                ' ' | '\t' | '\n' | '\r' => {
+                ' ' | '\t' | '\\' => {
                     self.chars.next(); // Consume the space and move on
                 }
                 
+                // MathEX treats newlines and semicolons as Commas!
+                '\n' | '\r' | ';' => {
+                    self.chars.next();
+                    if let Some(last_token) = tokens.last() {
+                        match last_token {
+                            Token::Number(_) | Token::Identifier(_) | Token::RParen => {
+                                tokens.push(Token::Comma);
+                            }
+                            _ => {} // Ignore consecutive newlines, or newlines after operators (like `a=\n3`)
+                        }
+                    }
+                }
+
                 // 2. Parse Multi-Character and Single-Character Operators
                 
                 '=' => {
@@ -151,12 +164,12 @@ impl<'a> Lexer<'a> {
                 }
 
                 // 4. Parse Identifiers (Variables like 'x' and Functions like 'add')
-                'a'..='z' | 'A'..='Z' | '_' => {
+                c if c.is_alphabetic() || c == '_' || c == '$' => {
                     let mut id_str = String::new();
                     
                     while let Some(&next_c) = self.chars.peek() {
-                        // Identifiers can contain letters, numbers, or underscores
-                        if next_c.is_ascii_alphanumeric() || next_c == '_' {
+                        // Identifiers can contain letters, numbers, underscores, or hashes
+                        if next_c.is_alphanumeric() || next_c == '_' || next_c == '#' || next_c == '$' {
                             id_str.push(next_c);
                             self.chars.next();
                         } else {

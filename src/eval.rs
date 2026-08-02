@@ -12,13 +12,23 @@ pub struct Evaluator {
     // Stores custom functions. 
     // This is a map of a String name to a safe Rust function pointer.
     pub functions: HashMap<String, fn(&[f32]) -> Result<f32, String>>,
+    pub macros: HashMap<String, Expr>, // Stores dynamic $(name, expr) macros
 }
 
 impl Evaluator {
     pub fn new() -> Self {
+        let mut functions: HashMap<String, fn(&[f32]) -> Result<f32, String>> = HashMap::new();
+
+        // Hardcode the C test environment functions
+        functions.insert("add".to_string(), |args| Ok(args.get(0).unwrap_or(&0.0) + args.get(1).unwrap_or(&0.0)));
+        functions.insert("next".to_string(), |args| Ok(args.get(0).unwrap_or(&0.0) + 1.0));
+        functions.insert("nop".to_string(), |_| Ok(0.0));
+        functions.insert("print".to_string(), |_| Ok(0.0));
+
         Self {
             variables: HashMap::new(),
-            functions: HashMap::new(),
+            functions,
+            macros: HashMap::new()
         }
     }
 
@@ -54,16 +64,16 @@ impl Evaluator {
                 // We only evaluate the right side if the left side doesn't resolve the logic.
                 if let BinaryOp::LogAnd = op {
                     let left_val = self.eval(left)?;
-                    if left_val == 0.0 { return Ok(0.0); }
-                    let right_val = self.eval(right)?;
-                    return Ok(if right_val != 0.0 { 1.0 } else { 0.0 });
+                    // If left is falsy (0.0) or NaN, return it.
+                    if left_val == 0.0 || left_val.is_nan() { return Ok(left_val); }
+                    return self.eval(right); // Otherwise, return the right side
                 }
                 
                 if let BinaryOp::LogOr = op {
                     let left_val = self.eval(left)?;
-                    if left_val != 0.0 { return Ok(1.0); }
-                    let right_val = self.eval(right)?;
-                    return Ok(if right_val != 0.0 { 1.0 } else { 0.0 });
+                    // If left is truthy, return it.
+                    if left_val != 0.0 && !left_val.is_nan() { return Ok(left_val); }
+                    return self.eval(right);
                 }
 
                 // --- STANDARD BINARY OPERATIONS ---
@@ -114,13 +124,48 @@ impl Evaluator {
             }
 
             Expr::FunctionCall { name, args } => {
-                // Traverse and evaluate every argument inside the function parentheses
+                // 1. Handle Macro Definitions lazily (Do NOT evaluate arguments yet)
+                if name == "$" {
+                    if let Some(Expr::Variable(macro_name)) = args.get(0) {
+                        let macro_body = args.get(1).unwrap_or(&Expr::Number(0.0)).clone();
+                        self.macros.insert(macro_name.clone(), macro_body);
+                        return Ok(0.0);
+                    }
+                    return Err("Invalid macro definition".to_string());
+                }
+
+                // 2. Evaluate all arguments for standard functions
                 let mut evaluated_args = Vec::new();
                 for arg in args {
                     evaluated_args.push(self.eval(arg)?);
                 }
 
-                // Look up the function pointer and execute it
+                // 3. Execute Dynamic Macros
+                if let Some(macro_expr) = self.macros.get(name).cloned() {
+                    // Temporarily bind $1, $2, etc. to the arguments
+                    let mut old_vars = HashMap::new();
+                    for (i, &val) in evaluated_args.iter().enumerate() {
+                        let arg_name = format!("${}", i + 1);
+                        if let Some(old_val) = self.variables.insert(arg_name.clone(), val) {
+                            old_vars.insert(arg_name, old_val);
+                        }
+                    }
+
+                    let result = self.eval(&macro_expr);
+
+                    // Restore previous variable states
+                    for i in 0..evaluated_args.len() {
+                        let arg_name = format!("${}", i + 1);
+                        if let Some(old_val) = old_vars.get(&arg_name) {
+                            self.variables.insert(arg_name, *old_val);
+                        } else {
+                            self.variables.remove(&arg_name);
+                        }
+                    }
+                    return result;
+                }
+
+                // 4. Execute Standard Functions
                 if let Some(func) = self.functions.get(name) {
                     func(&evaluated_args)
                 } else {

@@ -21,13 +21,14 @@ pub struct expr_var_node {
 #[repr(C)]
 #[allow(non_camel_case_types)]
 pub struct expr_var_list {
-    pub head: *mut expr_var_node, // THIS is the crucial change! No more Rust Evaluator here.
+    pub head: *mut expr_var_node,
 }
 
 #[allow(non_camel_case_types)]
 pub struct expr {
     pub ast: Expr,
-    pub vars: *mut expr_var_list, 
+    pub vars: *mut expr_var_list,
+    pub evaluator: Evaluator,
 }
 
 // --- 2. THE EXPR API ---
@@ -59,7 +60,22 @@ pub extern "C" fn expr_create(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let e = Box::new(expr { ast, vars });
+    let mut evaluator = Evaluator::new();
+
+    if !vars.is_null() {
+        unsafe {
+            let mut current = (*vars).head;
+            while !current.is_null() {
+                let c_str = CStr::from_ptr((*current).name.as_ptr());
+                if let Ok(name_str) = c_str.to_str() {
+                    evaluator.variables.insert(name_str.to_string(), (*current).value);
+                }
+                current = (*current).next;
+            }
+        }
+    }
+
+    let e = Box::new(expr { ast, vars, evaluator });
     Box::into_raw(e)
 }
 
@@ -68,24 +84,20 @@ pub extern "C" fn expr_eval(e: *mut expr) -> f32 {
     if e.is_null() { return 0.0; }
 
     unsafe {
-        let expr_ref = &*e;
-        let mut temp_eval = Evaluator::new();
+        let expr_ref = &mut *e;
 
-        // THE BRIDGE: Walk the C linked list and safely copy C's variables 
-        // into our safe Rust HashMap right before we evaluate!
         if !expr_ref.vars.is_null() {
             let mut current = (*expr_ref.vars).head;
             while !current.is_null() {
                 let c_str = CStr::from_ptr((*current).name.as_ptr());
                 if let Ok(name_str) = c_str.to_str() {
-                    temp_eval.variables.insert(name_str.to_string(), (*current).value);
+                    expr_ref.evaluator.variables.insert(name_str.to_string(), (*current).value);
                 }
                 current = (*current).next;
             }
         }
 
-        // Run the math!
-        temp_eval.eval(&expr_ref.ast).unwrap_or(0.0)
+        expr_ref.evaluator.eval(&expr_ref.ast).unwrap_or(0.0)
     }
 }
 
@@ -143,10 +155,56 @@ pub extern "C" fn expr_var(
 }
 
 #[no_mangle]
-pub extern "C" fn expr_next_token(
-    _s: *const c_char, 
-    _len: usize, 
-    _token: *mut c_void 
-) -> i32 {
-    0
+pub extern "C" fn expr_next_token(s: *const c_char, len: usize, _flags: *mut i32) -> i32 {
+    if s.is_null() || len == 0 {
+        return 0;
+    }
+
+    // Safely convert the C string pointer and length to a byte slice
+    let slice = unsafe { std::slice::from_raw_parts(s as *const u8, len) };
+    if slice.is_empty() {
+        return 0;
+    }
+
+    let c = slice[0] as char;
+    let mut i = 1;
+
+    // 1. Match Numbers
+    if c.is_ascii_digit() || c == '.' {
+        while i < len {
+            let next_c = slice[i] as char;
+            if next_c.is_ascii_digit() || next_c == '.' {
+                i += 1;
+            } else {
+                break;
+            }
+        }
+        return i as i32;
+    }
+
+    // 2. Match Identifiers (Letters, _, $, #)
+    if c.is_ascii_alphabetic() || c == '_' || c == '$' || c == '#' {
+        while i < len {
+            let next_c = slice[i] as char;
+            if next_c.is_ascii_alphanumeric() || next_c == '_' || next_c == '$' || next_c == '#' {
+                i += 1;
+            } else {
+                break;
+            }
+        }
+        return i as i32;
+    }
+
+    // 3. Match 2-Character Operators (like **, ==, <=, <<)
+    if i < len {
+        let next_c = slice[1] as char;
+        match (c, next_c) {
+            ('*', '*') | ('=', '=') | ('!', '=') | ('<', '=') | ('>', '=') | 
+            ('&', '&') | ('|', '|') | ('<', '<') | ('>', '>') => return 2,
+            _ => {}
+        }
+    }
+
+    // 4. Default to 1-Character Operator (like +, -, *)
+    1
 }
