@@ -1,5 +1,7 @@
 # MathEX-Rust 
 
+> 🎥 **[Watch the 1-Minute Project Demo Video](YOUR_VIDEO_URL_HERE):** https://drive.google.com/file/d/1xWhsTwlxDwhguf4VKKfJhIA4TL04gfrv/view?usp=drive_link
+
 > **A 100% Memory-Safe, Zero-Cost Rust Rewrite of the MathEX C99 Engine**
 
 **MathEX-rs** is a complete, bottom-up rewrite of the legacy **MathEX C99** mathematical expression evaluator into safe, idiomatic Rust. It guarantees **100% C ABI drop-in compatibility**, passes the original unmodified test suite, and eliminates all unsafe pointer arithmetic and manual memory management—without sacrificing execution speed.
